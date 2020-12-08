@@ -1,0 +1,15 @@
+-> All Tweets page
+-> Following Tweets page
+
+Display Elements On page ->
+    -> Pagination 10/page (next Arrows)
+    -> Like/Unlike Button
+    -> Comment Button?!
+    -> ReChant Button?!
+
+Actions :
+    Like / Unlike Post
+    Follow / Unfollow User
+
+Profile :
+    Follow / Unfollow

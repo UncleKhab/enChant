@@ -6,7 +6,7 @@ class User(AbstractUser):
     pass
 
 class Tweet(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="tweets")
     content = models.TextField(blank=False, null=False)
     likes = models.ManyToManyField(User, related_name='tweet_user', blank=True, through="TweetLike")
     timestamp = models.DateTimeField(auto_now_add=True)
@@ -38,7 +38,7 @@ class Profile(models.Model):
         return {
             "id": self.id,
             "user": self.user.username,
-            "followers": self.followers,
-            "following": self.following,
+            "followers": self.followers.count(),
+            "following": self.following.count(),
             "description" : self.description
         }

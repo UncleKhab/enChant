@@ -1,8 +1,10 @@
+import json
 from django.contrib.auth import authenticate, login, logout
 from django.db import IntegrityError
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.shortcuts import render
 from django.urls import reverse
+from django.views.decorators.csrf import csrf_exempt
 
 from .models import User, Tweet, TweetLike, Profile
 from .forms import TweetForm
@@ -11,13 +13,23 @@ from .forms import TweetForm
 def index(request):
     return render(request, "network/index.html")
 
-def tweet_list_view(request):
+def tweet_list_view(request, query):
     """
     API VIEW
-    RETURNS JSON DATA
+    RETURNS A LIST WITH TWEETS
+    WHEN CALLING YOU NEED TO SPECIFY THE LIST YOU WANT
+    Available lists: all, following
     """
-    queryString = Tweet.objects.all()
-    tweets_list = [tweet.serialize() for tweet in queryString]
+    user=request.user
+    if query == "all":
+        querySet = Tweet.objects.all()
+    if query == "following":
+        if not user.is_authenticated:
+            return render(request, "network/login.html")
+        users_followed = Profile.objects.get(user=request.user).following.all()
+        querySet = Tweet.objects.filter(user__in=users_followed)
+        
+    tweets_list = [tweet.serialize() for tweet in querySet]
     if request.user.is_authenticated :
         user = request.user.username
     else:
@@ -29,6 +41,35 @@ def tweet_list_view(request):
     }
     return JsonResponse(data)
 
+def profile_view(request, query):
+    """
+    API VIEW
+    RETURNS THE USERS PROFILE DATA AND TWEETS
+    """
+    if not user.is_authenticated:
+        return render(request, "network/login.html")
+    user = request.user.username
+    profile_user = User.objects.get(pk=query)
+    profile = Profile.objects.get(user=profile_user)
+    
+    if user in profile.following.all():
+        following = True
+    else:
+        following = False
+    
+    if request.user == profile_user:
+        sameUser = True
+    else:
+        sameUser = False
+    
+    data={
+        "user": user,
+        "profile": profile.serialize(),
+        "following": following,
+        "sameUser": sameUser
+    }
+    return JsonResponse(data)
+@csrf_exempt
 def tweet_create_view(request):
     """
     API CREATE VIEW 
@@ -37,17 +78,18 @@ def tweet_create_view(request):
     if not request.user.is_authenticated:
         user = None
         return render(request, "network/login.html")
+    if request.method != "POST":
+        return JsonResponse({"error": "POST request required."}, status=400)
     
-    form = TweetForm(request.POST or None)
+    data = json.loads(request.body)
+    content = data['content']
+    tweet = Tweet(user=user, content=content)
+    if len(content) > 256 :
+        return JsonResponse({"error": "The Tweet exceeds the Maximum Length of 256 characters"})
+    
+    tweet.save()
+    return JsonResponse({"message": "Post Created"}, status=201)
 
-    if form.is_valid():
-        obj = form.save(commit=False)
-        obj.user = user
-        obj.save()
-        return JsonResponse(obj.serialize(), status=201) #201 Created Tweet
-    if form.errors:
-        return JsonResponse(form.errors, status=400) # 400 Error in Creation
-    return render(request, 'network/form.html', context={"form": form})
 
 def login_view(request):
     if request.method == "POST":

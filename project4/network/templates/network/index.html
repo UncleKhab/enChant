@@ -1,5 +1,20 @@
 {% extends "network/layout.html" %}
+{% load static %}
 
 {% block body %}
-    TODO
+    <div class="form-container">
+        <form id="tweet-create-form">
+            {% csrf_token %}
+            <input name="content" id="content" cols="30" rows="10"></input>
+            <button type="submit" class="btn btn-small btn-primary">Cast</button>
+        </form>
+    </div>
+
+    <div class="tweet-list">
+
+    </div>
+{% endblock %}
+
+{% block script %}
+    <script src="{% static 'network/index.js' %}"></script>
 {% endblock %}
