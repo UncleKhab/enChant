@@ -5,6 +5,7 @@ from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.shortcuts import render
 from django.urls import reverse
 from django.views.decorators.csrf import csrf_exempt
+from django.core.paginator import Paginator
 
 from .models import User, Tweet, TweetLike, Profile
 from .forms import TweetForm
@@ -28,8 +29,11 @@ def tweet_list_view(request, query):
             return render(request, "network/login.html")
         users_followed = Profile.objects.get(user=request.user).following.all()
         querySet = Tweet.objects.filter(user__in=users_followed)
-        
-    tweets_list = [tweet.serialize() for tweet in querySet]
+    paginator = Paginator(querySet, 10)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    tweets_list = [tweet.serialize() for tweet in page_obj]
     if request.user.is_authenticated :
         user = request.user.username
     else:
